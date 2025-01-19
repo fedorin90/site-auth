@@ -3,7 +3,7 @@ from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token
 from email_validator import validate_email, EmailNotValidError
-from pymongo import MongoClient
+from mongo_client import mongo_client
 import uuid
 from dotenv import load_dotenv
 import os
@@ -14,10 +14,11 @@ bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
 load_dotenv()
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+DEBUG = bool(os.environ.get("DEBUG", True))
 
-client = MongoClient("mongodb://localhost:27017/")
-db = client["user_database"]
-users_collection = db["users"]
+
+db = mongo_client.user_database
+users_collection = db.users
 
 
 @app.route("/register", methods=["POST"])
@@ -87,4 +88,4 @@ def login():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5050)
