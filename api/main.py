@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 import os
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
 load_dotenv()
@@ -61,6 +61,9 @@ def verify_email(user_id):
     if not user:
         return jsonify({"error": "Invalid verification link"}), 400
 
+    if user["is_verified"]:
+        return jsonify({"message": "Email is already verified"}), 200
+
     users_collection.update_one(
         {"id": user_id}, {"$set": {"is_verified": True}}
     )  # Обновление статуса.
@@ -84,7 +87,10 @@ def login():
     access_token = create_access_token(
         identity={"id": user["id"], "email": user["email"]}
     )
-    return jsonify({"access_token": access_token}), 200
+    return (
+        jsonify({"access_token": access_token, "message": "Successfully logged in"}),
+        200,
+    )
 
 
 if __name__ == "__main__":
