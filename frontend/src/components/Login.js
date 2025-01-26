@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { Container, Button, Form, Row, Col } from 'react-bootstrap'
-import GoogleAuth from './GoogleAuth'
 import axios from 'axios'
 
 const Login = ({ setUser }) => {
@@ -59,7 +58,7 @@ const Login = ({ setUser }) => {
                 required
               />
             </Form.Group>
-            <GoogleAuth />
+
             <Button variant="primary" type="submit">
               Login
             </Button>

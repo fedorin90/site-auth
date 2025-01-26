@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'
 import { ToastContainer, toast } from 'react-toastify'
-import { GoogleOAuthProvider } from '@react-oauth/google'
 import { jwtDecode } from 'jwt-decode'
 import Header from './components/Header'
 import Welcome from './components/Welcome'
@@ -45,25 +44,17 @@ function App() {
   }
 
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <Router>
-        <Header user={user} logout={handleLogout} />
-        <Routes>
-          <Route path="/" element={<Welcome user={user} />} />
-          <Route path="/register" element={<Register />} />
-          <Route
-            path="/login"
-            element={<Login setUser={setAuthorizedUser} />}
-          />
-          <Route path="/verify/:userId" element={<VerifyEmail />} />
-          <Route
-            path="/terms-and-conditions"
-            element={<TermsAndConditions />}
-          />
-        </Routes>
-        <ToastContainer position="top-center" />
-      </Router>
-    </GoogleOAuthProvider>
+    <Router>
+      <Header user={user} logout={handleLogout} />
+      <Routes>
+        <Route path="/" element={<Welcome user={user} />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login setUser={setAuthorizedUser} />} />
+        <Route path="/verify/:userId" element={<VerifyEmail />} />
+        <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+      </Routes>
+      <ToastContainer position="top-center" />
+    </Router>
   )
 }
 
