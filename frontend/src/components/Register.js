@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Container, Button, Form, Row, Col } from 'react-bootstrap'
 import axios from 'axios'
+import { toast } from 'react-toastify'
 
 const Register = () => {
   const [email, setEmail] = useState('')
@@ -15,10 +16,10 @@ const Register = () => {
         email,
         password,
       })
-      alert(response.data.message)
-      navigate('/')
+      toast.info(response.data.message)
+      navigate('/login')
     } catch (err) {
-      alert(err.response.data.error)
+      toast.error(err.response.data.error)
     }
   }
   return (

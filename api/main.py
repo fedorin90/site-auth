@@ -1,33 +1,66 @@
 from flask import Flask, request, jsonify
+from oauthlib.oauth2 import WebApplicationClient
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token
 from email_validator import validate_email, EmailNotValidError
 from mongo_client import mongo_client
 import uuid
+from google.auth.transport.requests import Request
+from google.oauth2 import id_token
+
 from dotenv import load_dotenv
 import os
 
+
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+CORS(
+    app,
+    supports_credentials=True,
+    resources={r"/*": {"origins": "http://localhost:3000"}},
+)
+
+# Загрузка переменных окружения
+load_dotenv()
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
+
+client = WebApplicationClient(GOOGLE_CLIENT_ID)
+
 bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
-load_dotenv()
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+
+# Режим отладки
 DEBUG = bool(os.environ.get("DEBUG", True))
 
-
+# Подключение к MongoDB
 db = mongo_client.user_database
 users_collection = db.users
 
 
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "http://localhost:3000"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+
 @app.route("/register", methods=["POST"])
 def register():
-    data = request.json  # Получение данных из запроса.
+    """
+    Регистрация нового пользователя с email и паролем.
+    """
+    data = request.json  # Получение JSON-данных из запроса
     email = data.get("email")
     password = data.get("password")
 
-    # Проверка email
+    # Проверка корректности email
     try:
         validate_email(email)
     except EmailNotValidError as e:
@@ -37,19 +70,19 @@ def register():
     if users_collection.find_one({"email": email}):
         return jsonify({"error": "User already exists"}), 400
 
-    # Хэширование пароля
+    # Хэширование пароля для безопасности
     hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
 
     # Создание нового пользователя
     new_user = {
-        "id": str(uuid.uuid4()),  # Уникальный ID пользователя.
+        "id": str(uuid.uuid4()),  # Уникальный ID
         "email": email,
-        "password": hashed_password,  # Хэшированный пароль.
-        "is_verified": False,  # Пользователь ещё не подтвердил email.
+        "password": hashed_password,  # Хранение хэшированного пароля
+        "is_verified": False,  # Email ещё не подтверждён
     }
-    users_collection.insert_one(new_user)  # Сохранение в базе данных.
+    users_collection.insert_one(new_user)  # Сохранение пользователя в MongoDB
 
-    # Отправка подтверждения email (упрощённый пример)
+    # TODO: Здесь можно добавить отправку email для подтверждения
     print(f"Подтверждающая ссылка: http://localhost:3000/verify/{new_user['id']}")
 
     return jsonify({"message": "User registered. Please verify your email."}), 201
@@ -91,6 +124,13 @@ def login():
         jsonify({"access_token": access_token, "message": "Successfully logged in"}),
         200,
     )
+
+
+@app.route("/login/google", methods=["POST"])
+def login_google():
+    """
+    Аутентификация пользователя через Google OAuth.
+    """
 
 
 if __name__ == "__main__":

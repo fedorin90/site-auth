@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'react-toastify'
 import { Container, Button, Form, Row, Col } from 'react-bootstrap'
+import GoogleAuth from './GoogleAuth'
 import axios from 'axios'
 
 const Login = ({ setUser }) => {
@@ -15,15 +17,17 @@ const Login = ({ setUser }) => {
         email,
         password,
       })
-      alert(response.data.message)
       const { access_token } = response.data
       localStorage.setItem('access_token', access_token)
       setUser()
+      toast.success('Successfully logged in')
+
       navigate('/')
     } catch (err) {
-      alert(err.response.data.error || 'Something went wrong')
+      toast.error(err.response.data.error || 'Something went wrong')
     }
   }
+
   return (
     <Container className="mt-5">
       <Row>
@@ -55,7 +59,7 @@ const Login = ({ setUser }) => {
                 required
               />
             </Form.Group>
-
+            <GoogleAuth />
             <Button variant="primary" type="submit">
               Login
             </Button>

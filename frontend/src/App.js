@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'
+import { ToastContainer, toast } from 'react-toastify'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import { jwtDecode } from 'jwt-decode'
 import Header from './components/Header'
 import Welcome from './components/Welcome'
@@ -7,6 +9,8 @@ import Login from './components/Login'
 import Register from './components/Register'
 import VerifyEmail from './components/VerifyEmail'
 import TermsAndConditions from './components/TermsAndConditions'
+
+const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID
 
 const getAuthorizedUser = () => {
   const token = localStorage.getItem('access_token')
@@ -37,19 +41,29 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('access_token')
     setUser(null)
+    toast.info('You are no longer authorized')
   }
 
   return (
-    <Router>
-      <Header user={user} logout={handleLogout} />
-      <Routes>
-        <Route path="/" element={<Welcome />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/login" element={<Login setUser={setAuthorizedUser} />} />
-        <Route path="/verify/:userId" element={<VerifyEmail />} />
-        <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
-      </Routes>
-    </Router>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <Router>
+        <Header user={user} logout={handleLogout} />
+        <Routes>
+          <Route path="/" element={<Welcome user={user} />} />
+          <Route path="/register" element={<Register />} />
+          <Route
+            path="/login"
+            element={<Login setUser={setAuthorizedUser} />}
+          />
+          <Route path="/verify/:userId" element={<VerifyEmail />} />
+          <Route
+            path="/terms-and-conditions"
+            element={<TermsAndConditions />}
+          />
+        </Routes>
+        <ToastContainer position="top-center" />
+      </Router>
+    </GoogleOAuthProvider>
   )
 }
 

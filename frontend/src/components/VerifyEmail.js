@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { toast } from 'react-toastify'
 
 const VerifyEmail = () => {
   const { userId } = useParams() // Получаем userId из URL.
-  const [message, setMessage] = useState('') // Сообщение для отображения.
-  const [error, setError] = useState('') // Ошибка, если есть.
+
+  const navigate = useNavigate()
 
   useEffect(() => {
     const verifyEmail = async () => {
@@ -13,21 +14,18 @@ const VerifyEmail = () => {
         const response = await axios.get(
           `http://localhost:5050/verify/${userId}` // Запрос к серверу.
         )
-        setMessage(response.data.message) // Устанавливаем успешное сообщение.
+        toast.success(response.data.message) // Устанавливаем успешное сообщение.
+        navigate('/login')
       } catch (err) {
-        setError(err.response?.data?.error || 'Something went wrong') // Устанавливаем сообщение об ошибке.
+        toast.error(err.response?.data?.error || 'Something went wrong') // Устанавливаем сообщение об ошибке.
+        navigate('/')
       }
     }
 
     verifyEmail() // Вызываем функцию при загрузке компонента.
-  }, [userId])
+  }, [userId, navigate])
 
-  return (
-    <div>
-      {message && <h2 style={{ color: 'green' }}>{message}</h2>}
-      {error && <h2 style={{ color: 'red' }}>{error}</h2>}
-    </div>
-  )
+  return <div></div>
 }
 
 export default VerifyEmail

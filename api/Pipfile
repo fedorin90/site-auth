@@ -11,6 +11,11 @@ flask-bcrypt = "*"
 flask-jwt-extended = "*"
 email-validator = "*"
 pymongo = "*"
+flask-oauthlib = "*"
+google-auth-oauthlib = "*"
+google-auth-httplib2 = "*"
+google-auth = "*"
+requests = "*"
 
 [dev-packages]
 
