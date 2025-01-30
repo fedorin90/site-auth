@@ -1,19 +1,19 @@
-from flask import Flask, request, jsonify
-from oauthlib.oauth2 import WebApplicationClient
+import uuid
+import os
+from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
-from flask_jwt_extended import JWTManager, create_access_token
+from authlib.integrations.flask_client import OAuth
 from email_validator import validate_email, EmailNotValidError
 from mongo_client import mongo_client
-import uuid
-from google.auth.transport.requests import Request
-from google.oauth2 import id_token
-
 from dotenv import load_dotenv
-import os
 
+load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = os.getenv("FLASK_SECRET_KEY")
+oauth = OAuth(app)
+
 CORS(
     app,
     supports_credentials=True,
@@ -21,16 +21,13 @@ CORS(
 )
 
 # Загрузка переменных окружения
-load_dotenv()
+
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
 
-client = WebApplicationClient(GOOGLE_CLIENT_ID)
 
 bcrypt = Bcrypt(app)
-jwt = JWTManager(app)
-app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 
 # Режим отладки
 DEBUG = bool(os.environ.get("DEBUG", True))
@@ -38,17 +35,6 @@ DEBUG = bool(os.environ.get("DEBUG", True))
 # Подключение к MongoDB
 db = mongo_client.user_database
 users_collection = db.users
-
-
-@app.after_request
-def add_cors_headers(response):
-    response.headers["Access-Control-Allow-Origin"] = "http://localhost:3000"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    response.headers["Cache-Control"] = "no-store"
-    response.headers["Pragma"] = "no-cache"
-    return response
 
 
 @app.route("/register", methods=["POST"])
@@ -90,6 +76,9 @@ def register():
 
 @app.route("/verify/<user_id>", methods=["GET"])
 def verify_email(user_id):
+    """
+    Верификация нового пользователя по email.
+    """
     user = users_collection.find_one({"id": user_id})  # Поиск пользователя по ID.
     if not user:
         return jsonify({"error": "Invalid verification link"}), 400
@@ -105,6 +94,9 @@ def verify_email(user_id):
 
 @app.route("/login", methods=["POST"])
 def login():
+    """
+    Аутентификация пользователя по email и паролю.
+    """
     data = request.json
     email = data.get("email")
     password = data.get("password")
@@ -116,21 +108,33 @@ def login():
     if not user["is_verified"]:
         return jsonify({"error": "Email not verified"}), 401
 
-    # Создание токена
-    access_token = create_access_token(
-        identity={"id": user["id"], "email": user["email"]}
-    )
+    session["user_id"] = str(user["_id"])  # Сохраняем user_id в cookies
+    session["email"] = user["email"]
+
     return (
-        jsonify({"access_token": access_token, "message": "Successfully logged in"}),
+        jsonify({"message": "Login successful", "user": {"email": user["email"]}}),
         200,
     )
 
 
-@app.route("/login/google", methods=["POST"])
-def login_google():
+@app.route("/profile", methods=["GET"])
+def profile():
     """
-    Аутентификация пользователя через Google OAuth.
+    Проверка сессии.
     """
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    return jsonify({"user": {"email": session["email"]}})
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    """
+    Выход пользователя и удаление сессии.
+    """
+    session.clear()  # Удаляем данные из cookies
+    return jsonify({"message": "Logout successful"})
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ import { toast } from 'react-toastify'
 import { Container, Button, Form, Row, Col } from 'react-bootstrap'
 import axios from 'axios'
 
-const Login = ({ setUser }) => {
+const Login = ({ fetchUser }) => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const navigate = useNavigate()
@@ -12,19 +12,26 @@ const Login = ({ setUser }) => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      const response = await axios.post('http://localhost:5050/login', {
-        email,
-        password,
-      })
-      const { access_token } = response.data
-      localStorage.setItem('access_token', access_token)
-      setUser()
+      const response = await axios.post(
+        'http://localhost:5050/login',
+        {
+          email,
+          password,
+        },
+        { withCredentials: true }
+      )
+
+      fetchUser()
       toast.success('Successfully logged in')
 
       navigate('/')
     } catch (err) {
-      toast.error(err.response.data.error || 'Something went wrong')
+      toast.error(err.response?.data?.error || 'Something went wrong')
     }
+  }
+
+  const handleGoogleLogin = () => {
+    window.location.href = 'http://localhost:5050/login/google'
   }
 
   return (
@@ -58,7 +65,10 @@ const Login = ({ setUser }) => {
                 required
               />
             </Form.Group>
-
+            <Button onClick={handleGoogleLogin} variant="outline-danger">
+              Login via Google
+            </Button>
+            <p />
             <Button variant="primary" type="submit">
               Login
             </Button>

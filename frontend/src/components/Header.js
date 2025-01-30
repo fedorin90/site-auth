@@ -1,10 +1,17 @@
 import { Container, Navbar } from 'react-bootstrap'
+import { useNavigate } from 'react-router-dom'
 import Button from 'react-bootstrap/Button'
 import ButtonGroup from 'react-bootstrap/ButtonGroup'
 import { ReactComponent as Logo } from '../images/logo.svg'
 import 'bootstrap/dist/css/bootstrap.min.css'
 
 const Header = ({ user, logout }) => {
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+  }
   return (
     <Navbar className="bg-body-tertiary">
       <Container>
@@ -33,7 +40,7 @@ const Header = ({ user, logout }) => {
             </>
           )}
           {user && (
-            <Button onClick={logout} variant="secondary">
+            <Button onClick={handleLogout} variant="secondary">
               Log out
             </Button>
           )}
