@@ -35,7 +35,7 @@ function App() {
       { withCredentials: true }
     )
     setUser(null)
-    toast.success('Logged out')
+    toast.info('Logged out')
   }
 
   return (

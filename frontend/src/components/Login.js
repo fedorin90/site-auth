@@ -31,7 +31,7 @@ const Login = ({ fetchUser }) => {
   }
 
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:5050/login/google'
+    window.location.href = 'http://localhost:5050/google-login'
   }
 
   return (

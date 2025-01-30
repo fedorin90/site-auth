@@ -1,6 +1,6 @@
 import uuid
 import os
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify, session, url_for, redirect
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from authlib.integrations.flask_client import OAuth
@@ -26,6 +26,19 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
 
+# Настрой OAuth
+oauth = OAuth(app)
+google = oauth.register(
+    name="google",
+    client_id=GOOGLE_CLIENT_ID,
+    client_secret=GOOGLE_CLIENT_SECRET,
+    authorize_url="https://accounts.google.com/o/oauth2/auth",
+    authorize_params={"prompt": "select_account"},
+    access_token_url="https://oauth2.googleapis.com/token",
+    access_token_params=None,
+    client_kwargs={"scope": "openid email profile"},  # Важно!
+    server_metadata_url=GOOGLE_DISCOVERY_URL,
+)
 
 bcrypt = Bcrypt(app)
 
@@ -135,6 +148,40 @@ def logout():
     """
     session.clear()  # Удаляем данные из cookies
     return jsonify({"message": "Logout successful"})
+
+
+@app.route("/google-login")
+def google_login():
+    """Редиректит пользователя на страницу авторизации Google."""
+    redirect_uri = url_for("google_login_callback", _external=True)
+    google = oauth.create_client("google")
+    return google.authorize_redirect(redirect_uri)
+
+
+@app.route("/google-login/callback")
+def google_login_callback():
+    """Получает токен от Google, сохраняет пользователя в БД и создаёт сессию."""
+
+    token = google.authorize_access_token()
+    email = token["userinfo"]["email"]
+
+    # Проверяем, есть ли пользователь в базе
+    user = users_collection.find_one({"email": email})
+    if not user:
+        # Если пользователя нет, создаём его
+        new_user = {
+            "id": str(uuid.uuid4()),  # Уникальный ID
+            "email": email,
+            "password": None,
+            "is_verified": True,  # Email подтверждён
+        }
+        users_collection.insert_one(new_user)
+
+    # Записываем пользователя в сессию
+    user = users_collection.find_one({"email": email})
+    session["user_id"] = str(user["_id"])  # Сохраняем user_id в cookies
+    session["email"] = user["email"]
+    return redirect(f"http://localhost:3000/?login=success&email={user["email"]}")
 
 
 if __name__ == "__main__":
