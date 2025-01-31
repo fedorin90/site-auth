@@ -45,7 +45,7 @@ function App() {
         <Route path="/" element={<Welcome user={user} />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login fetchUser={fetchUser} />} />
-        <Route path="/verify/:userId" element={<VerifyEmail />} />
+        <Route path="/verify/:token" element={<VerifyEmail />} />
         <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
       </Routes>
       <ToastContainer position="top-center" />

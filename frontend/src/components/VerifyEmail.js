@@ -4,7 +4,7 @@ import axios from 'axios'
 import { toast } from 'react-toastify'
 
 const VerifyEmail = () => {
-  const { userId } = useParams() // Получаем userId из URL.
+  const { token } = useParams() // Получаем userId из URL.
 
   const navigate = useNavigate()
 
@@ -12,7 +12,7 @@ const VerifyEmail = () => {
     const verifyEmail = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:5050/verify/${userId}` // Запрос к серверу.
+          `http://localhost:5050/verify/${token}` // Запрос к серверу.
         )
         toast.success(response.data.message) // Устанавливаем успешное сообщение.
         navigate('/login')
@@ -23,7 +23,7 @@ const VerifyEmail = () => {
     }
 
     verifyEmail() // Вызываем функцию при загрузке компонента.
-  }, [userId, navigate])
+  }, [token, navigate])
 
   return <div></div>
 }

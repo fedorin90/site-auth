@@ -1,8 +1,11 @@
 import uuid
 import os
+import datetime
+import jwt
 from flask import Flask, request, jsonify, session, url_for, redirect
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
+from flask_mail import Mail, Message
 from authlib.integrations.flask_client import OAuth
 from email_validator import validate_email, EmailNotValidError
 from mongo_client import mongo_client
@@ -11,22 +14,29 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY")
-oauth = OAuth(app)
 
+# Загрузка переменных окружения
+app.secret_key = os.getenv("FLASK_SECRET_KEY")
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+app.config["MAIL_SERVER"] = os.getenv("MAIL_SERVER")
+app.config["MAIL_PORT"] = int(os.getenv("MAIL_PORT"))
+app.config["MAIL_USE_TLS"] = True
+app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
+app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
+
+mail = Mail(app)
+
+# Настройка Cors
 CORS(
     app,
     supports_credentials=True,
     resources={r"/*": {"origins": "http://localhost:3000"}},
 )
 
-# Загрузка переменных окружения
-
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
-
-# Настрой OAuth
+# Настройка OAuth
 oauth = OAuth(app)
 google = oauth.register(
     name="google",
@@ -40,6 +50,7 @@ google = oauth.register(
     server_metadata_url=GOOGLE_DISCOVERY_URL,
 )
 
+# Настройка хеширования паролей
 bcrypt = Bcrypt(app)
 
 # Режим отладки
@@ -81,18 +92,50 @@ def register():
     }
     users_collection.insert_one(new_user)  # Сохранение пользователя в MongoDB
 
-    # TODO: Здесь можно добавить отправку email для подтверждения
-    print(f"Подтверждающая ссылка: http://localhost:3000/verify/{new_user['id']}")
+    # отправка email для подтверждения
+    token = jwt.encode(
+        {
+            "user_id": new_user["id"],
+            "exp": datetime.datetime.now(datetime.timezone.utc)
+            + datetime.timedelta(hours=1),
+        },
+        app.config["JWT_SECRET_KEY"],
+        algorithm="HS256",
+    )
+    # Генерируем токен на 1 час
+    verify_link = f"http://localhost:3000/verify/{token}"  # Ссылка для верификации
 
-    return jsonify({"message": "User registered. Please verify your email."}), 201
+    # Отправляем email
+    msg = Message(
+        "Verify Your Email", sender=app.config["MAIL_USERNAME"], recipients=[email]
+    )
+    msg.body = f"Click the link to verify your email: {verify_link}"
+    mail.send(msg)
+
+    return (
+        jsonify(
+            {"message": "User registered. Check your email to verify your account."}
+        ),
+        201,
+    )
 
 
-@app.route("/verify/<user_id>", methods=["GET"])
-def verify_email(user_id):
+@app.route("/verify/<token>", methods=["GET"])
+def verify_email(token):
     """
     Верификация нового пользователя по email.
     """
-    user = users_collection.find_one({"id": user_id})  # Поиск пользователя по ID.
+    # Проверяет токен и подтверждает email
+    try:
+        data = jwt.decode(token, app.config["JWT_SECRET_KEY"], algorithms=["HS256"])
+        user_id = data["user_id"]
+    except jwt.ExpiredSignatureError:
+        return jsonify({"error": "Verification link has expired"}), 400
+    except jwt.InvalidTokenError:
+        return jsonify({"error": "Invalid verification token"}), 400
+
+    # Поиск пользователя по ID.
+    user = users_collection.find_one({"id": user_id})
     if not user:
         return jsonify({"error": "Invalid verification link"}), 400
 

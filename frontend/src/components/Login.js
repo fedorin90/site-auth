@@ -22,7 +22,7 @@ const Login = ({ fetchUser }) => {
       )
 
       fetchUser()
-      toast.success('Successfully logged in')
+      toast.success(`Login successfull! Welcome, ${response.data.user.email}`)
 
       navigate('/')
     } catch (err) {
