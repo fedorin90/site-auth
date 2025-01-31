@@ -1,8 +1,26 @@
 import { useState } from 'react'
+import { FcGoogle } from 'react-icons/fc'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { Container, Button, Form, Row, Col } from 'react-bootstrap'
 import axios from 'axios'
+
+const style = {
+  divider: {
+    display: 'flex',
+    alignItems: 'center',
+    textAlign: 'center',
+    color: '#666',
+    fontWeight: 'bold',
+    fontSize: '14px',
+    margin: '20px 0',
+  },
+  line: {
+    flex: 1,
+    borderTop: '1px solid #ccc',
+    margin: '0 10px',
+  },
+}
 
 const Login = ({ fetchUser }) => {
   const [email, setEmail] = useState('')
@@ -50,9 +68,6 @@ const Login = ({ fetchUser }) => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
-              <Form.Text className="text-muted">
-                We'll never share your email with anyone else.
-              </Form.Text>
             </Form.Group>
 
             <Form.Group className="mb-3" controlId="formBasicPassword">
@@ -65,12 +80,26 @@ const Login = ({ fetchUser }) => {
                 required
               />
             </Form.Group>
-            <Button onClick={handleGoogleLogin} variant="outline-danger">
-              Login via Google
+            <p />
+            <Button variant="primary" type="submit" style={{ width: '100%' }}>
+              Login
             </Button>
             <p />
-            <Button variant="primary" type="submit">
-              Login
+            <Form.Text>
+              Don't have an account? <a href="/register">Sign up</a>
+              <div style={style.divider}>
+                <div style={style.line}></div>
+                OR
+                <div style={style.line}></div>
+              </div>
+            </Form.Text>
+            <Button
+              onClick={handleGoogleLogin}
+              variant="outline-dark"
+              style={{ width: '100%' }}
+            >
+              <FcGoogle className="mb-1" style={{ fontSize: '24px' }} />{' '}
+              Continue with Google
             </Button>
           </Form>
         </Col>
