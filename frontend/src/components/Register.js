@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { FaCheck, FaTimes } from 'react-icons/fa'
+import { FaEye, FaEyeSlash } from 'react-icons/fa'
 import { useNavigate } from 'react-router-dom'
-import { Container, Button, Form, Row, Col } from 'react-bootstrap'
+import { Container, Button, Form, Row, Col, InputGroup } from 'react-bootstrap'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 
@@ -23,6 +24,7 @@ const validateEmail = (email) => {
 const Register = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const validation = validatePassword(password)
   const isEmailValid = validateEmail(email)
   const navigate = useNavigate()
@@ -86,21 +88,29 @@ const Register = () => {
 
             <Form.Group className="mb-3" controlId="formBasicPassword">
               <Form.Label>Password</Form.Label>
-              <Form.Control
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                style={{
-                  borderColor: password
-                    ? isValid
-                      ? 'green' // Если пароль валиден, зелёный
-                      : 'red' // Если не валиден, красный
-                    : '#ccc', // Если пустое, стандартный серый
-                  outline: 'none',
-                }}
-              />
+              <InputGroup>
+                <Form.Control
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  style={{
+                    borderColor: password
+                      ? isValid
+                        ? 'green' // Если пароль валиден, зелёный
+                        : 'red' // Если не валиден, красный
+                      : '#ccc', // Если пустое, стандартный серый
+                    outline: 'none',
+                  }}
+                />
+                <InputGroup.Text
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </InputGroup.Text>
+              </InputGroup>
               {password && (
                 <ul style={{ listStyle: 'none', padding: 0 }}>
                   <li style={{ color: validation.length ? 'green' : 'red' }}>

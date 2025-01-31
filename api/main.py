@@ -159,7 +159,7 @@ def login():
 
     user = users_collection.find_one({"email": email})  # Поиск пользователя по email.
     if not user or not bcrypt.check_password_hash(user["password"], password):
-        return jsonify({"error": "Invalid credentials"}), 401
+        return jsonify({"error": "Incorrect email or password"}), 401
 
     if not user["is_verified"]:
         return jsonify({"error": "Email not verified"}), 401

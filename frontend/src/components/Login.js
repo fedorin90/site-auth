@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { FcGoogle } from 'react-icons/fc'
+import { FaEye, FaEyeSlash } from 'react-icons/fa'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
-import { Container, Button, Form, Row, Col } from 'react-bootstrap'
+import { Container, Button, Form, Row, Col, InputGroup } from 'react-bootstrap'
 import axios from 'axios'
 
 const style = {
@@ -25,6 +26,7 @@ const style = {
 const Login = ({ fetchUser }) => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -72,13 +74,21 @@ const Login = ({ fetchUser }) => {
 
             <Form.Group className="mb-3" controlId="formBasicPassword">
               <Form.Label>Password</Form.Label>
-              <Form.Control
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <InputGroup>
+                <Form.Control
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <InputGroup.Text
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </InputGroup.Text>
+              </InputGroup>
             </Form.Group>
             <p />
             <Button variant="primary" type="submit" style={{ width: '100%' }}>
