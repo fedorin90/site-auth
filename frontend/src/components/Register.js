@@ -24,6 +24,7 @@ const validateEmail = (email) => {
 const Register = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const validation = validatePassword(password)
   const isEmailValid = validateEmail(email)
@@ -37,6 +38,7 @@ const Register = () => {
       const response = await axios.post('http://localhost:5050/register', {
         email,
         password,
+        name,
       })
       toast.info(response.data.message)
       navigate('/login')
@@ -56,7 +58,7 @@ const Register = () => {
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <Form.Control
                   type="email"
-                  placeholder="Email"
+                  placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -85,13 +87,22 @@ const Register = () => {
                 </Form.Text>
               )}
             </Form.Group>
-
+            <Form.Group className="mb-3" controlId="formBasicName">
+              <Form.Label>Name</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Enter your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </Form.Group>
             <Form.Group className="mb-3" controlId="formBasicPassword">
               <Form.Label>Password</Form.Label>
               <InputGroup>
                 <Form.Control
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Password"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required

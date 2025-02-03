@@ -4,23 +4,35 @@ import { ToastContainer, toast } from 'react-toastify'
 import axios from 'axios'
 import Header from './components/Header'
 import Welcome from './components/Welcome'
+import Profile from './components/Profile'
 import Login from './components/Login'
 import Register from './components/Register'
 import VerifyEmail from './components/VerifyEmail'
 import TermsAndConditions from './components/TermsAndConditions'
 
 function App() {
-  const [user, setUser] = useState(null)
+  const defaultUser = {
+    name: '',
+    email: '',
+    photo: '',
+    isDefault: true,
+  }
+  const [user, setUser] = useState(defaultUser)
 
   const fetchUser = async () => {
     try {
       const response = await axios.get('http://localhost:5050/profile', {
         withCredentials: true, // Включаем отправку cookies
       })
-      setUser(response.data.user.email) // Устанавливаем пользователя
+      setUser({
+        name: response.data.user.name,
+        email: response.data.user.email,
+        photo: response.data.user.photo,
+        isDefault: false,
+      }) // Устанавливаем пользователя
     } catch (err) {
       //TODO добавить обработчкик 401
-      setUser(null) // Если нет сессии — user = null
+      setUser(defaultUser) // Если нет сессии — user = defaultUser
     }
   }
 
@@ -34,7 +46,7 @@ function App() {
       {},
       { withCredentials: true }
     )
-    setUser(null)
+    setUser(defaultUser)
     toast.info('Logged out')
   }
 
@@ -43,6 +55,7 @@ function App() {
       <Header user={user} logout={handleLogout} />
       <Routes>
         <Route path="/" element={<Welcome user={user} />} />
+        <Route path="/profile" element={<Profile user={user} />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login fetchUser={fetchUser} />} />
         <Route path="/verify/:token" element={<VerifyEmail />} />

@@ -32,16 +32,16 @@ const Header = ({ user, logout }) => {
         </Navbar.Brand>
         <Navbar.Toggle />
         <Navbar.Collapse className="justify-content-end me-2">
-          {user ? (
+          {!user.isDefault ? (
             <Navbar.Text>
-              Signed in as: <a href="#profile">{user}</a>
+              Signed in as: <a href="/profile">{user.name || user.email}</a>
             </Navbar.Text>
           ) : (
             <Navbar.Text>Not signed in</Navbar.Text>
           )}
         </Navbar.Collapse>
         <ButtonGroup aria-label="auth func">
-          {!user && (
+          {user.isDefault && (
             <>
               <Button href="/login" variant="secondary">
                 Log in
@@ -51,7 +51,7 @@ const Header = ({ user, logout }) => {
               </Button>
             </>
           )}
-          {user && (
+          {!user.isDefault && (
             <Button onClick={handleLogout} variant="secondary">
               Log out
             </Button>

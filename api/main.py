@@ -68,6 +68,7 @@ def register():
     """
     data = request.json  # Получение JSON-данных из запроса
     email = data.get("email")
+    name = data.get("name")
     password = data.get("password")
 
     # Проверка корректности email
@@ -87,6 +88,8 @@ def register():
     new_user = {
         "id": str(uuid.uuid4()),  # Уникальный ID
         "email": email,
+        "name": name,
+        "photo": None,
         "password": hashed_password,  # Хранение хэшированного пароля
         "is_verified": False,  # Email ещё не подтверждён
     }
@@ -164,8 +167,11 @@ def login():
     if not user["is_verified"]:
         return jsonify({"error": "Email not verified"}), 401
 
-    session["user_id"] = str(user["_id"])  # Сохраняем user_id в cookies
+    # Сохраняем user в cookies
+    session["user_id"] = str(user["_id"])
     session["email"] = user["email"]
+    session["name"] = user["name"]
+    session["photo"] = user["photo"]
 
     return (
         jsonify({"message": "Login successful", "user": {"email": user["email"]}}),
@@ -181,7 +187,15 @@ def profile():
     if "user_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
 
-    return jsonify({"user": {"email": session["email"]}})
+    return jsonify(
+        {
+            "user": {
+                "email": session["email"],
+                "name": session["name"],
+                "photo": session["photo"],
+            }
+        }
+    )
 
 
 @app.route("/logout", methods=["POST"])
@@ -197,8 +211,8 @@ def logout():
 def google_login():
     """Редиректит пользователя на страницу авторизации Google."""
     redirect_uri = url_for("google_login_callback", _external=True)
-    google = oauth.create_client("google")
-    return google.authorize_redirect(redirect_uri)
+    google_client = oauth.create_client("google")
+    return google_client.authorize_redirect(redirect_uri)
 
 
 @app.route("/google-login/callback")
@@ -207,6 +221,8 @@ def google_login_callback():
 
     token = google.authorize_access_token()
     email = token["userinfo"]["email"]
+    photo = token["userinfo"].get("picture", "/default-avatar.png")
+    name = token["userinfo"].get("name", "")
 
     # Проверяем, есть ли пользователь в базе
     user = users_collection.find_one({"email": email})
@@ -215,6 +231,8 @@ def google_login_callback():
         new_user = {
             "id": str(uuid.uuid4()),  # Уникальный ID
             "email": email,
+            "photo": photo,
+            "name": name,
             "password": None,
             "is_verified": True,  # Email подтверждён
         }
@@ -222,8 +240,11 @@ def google_login_callback():
 
     # Записываем пользователя в сессию
     user = users_collection.find_one({"email": email})
-    session["user_id"] = str(user["_id"])  # Сохраняем user_id в cookies
+    # Сохраняем user в cookies
+    session["user_id"] = str(user["_id"])
     session["email"] = user["email"]
+    session["photo"] = user["photo"]
+    session["name"] = user["name"]
     return redirect(f"http://localhost:3000/?login=success&email={user["email"]}")
 
 
