@@ -2,7 +2,16 @@ import uuid
 import os
 import datetime
 import jwt
-from flask import Flask, request, jsonify, session, url_for, redirect
+from werkzeug.utils import secure_filename
+from flask import (
+    Flask,
+    request,
+    jsonify,
+    session,
+    url_for,
+    redirect,
+    send_from_directory,
+)
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from flask_mail import Mail, Message
@@ -15,6 +24,9 @@ load_dotenv()
 
 app = Flask(__name__)
 
+UPLOAD_FOLDER = os.path.join(os.getcwd(), "uploads")  # Абсолютный путь
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 # Загрузка переменных окружения
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
@@ -23,9 +35,11 @@ app.config["MAIL_PORT"] = int(os.getenv("MAIL_PORT"))
 app.config["MAIL_USE_TLS"] = True
 app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
 app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
+
 
 mail = Mail(app)
 
@@ -91,6 +105,7 @@ def register():
         "name": name,
         "photo": None,
         "password": hashed_password,  # Хранение хэшированного пароля
+        "google_user": False,
         "is_verified": False,  # Email ещё не подтверждён
     }
     users_collection.insert_one(new_user)  # Сохранение пользователя в MongoDB
@@ -172,6 +187,7 @@ def login():
     session["email"] = user["email"]
     session["name"] = user["name"]
     session["photo"] = user["photo"]
+    session["google_user"] = user["google_user"]
 
     return (
         jsonify({"message": "Login successful", "user": {"email": user["email"]}}),
@@ -179,23 +195,60 @@ def login():
     )
 
 
-@app.route("/profile", methods=["GET"])
+@app.route("/uploads/<filename>")
+def uploaded_file(filename):
+    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+
+
+@app.route("/profile", methods=["GET", "PUT"])
 def profile():
     """
-    Проверка сессии.
+    GET - Получение данных профиля
+    PUT - Обновление имени и фото профиля
     """
     if "user_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
+    email = session["email"]
+    user = users_collection.find_one({"email": email})
+    if not user:
+        return jsonify({"error": "User not found"}), 404
 
-    return jsonify(
-        {
-            "user": {
-                "email": session["email"],
-                "name": session["name"],
-                "photo": session["photo"],
+    if request.method == "GET":
+        return jsonify(
+            {
+                "user": {
+                    "email": session["email"],
+                    "name": session["name"],
+                    "photo": session["photo"],
+                    "google_user": session["google_user"],
+                }
             }
-        }
-    )
+        )
+    if request.method == "PUT":
+        # Обновляем профиль пользователя
+        name = request.form.get("name", user.get("name", ""))
+
+        # Обработка фото
+        if "photo" in request.files:
+            photo = request.files["photo"]
+            filename = secure_filename(photo.filename)
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            photo.save(filepath)
+            photo_url = f"/uploads/{filename}"
+        else:
+            photo_url = user.get("photo", "")
+
+        # Обновляем пользователя в БД
+        users_collection.update_one(
+            {"email": email}, {"$set": {"name": name, "photo": photo_url}}
+        )
+
+        # Обновляем данные в сессии
+        session["name"] = name
+        session["photo"] = photo_url
+
+        updated_user = users_collection.find_one({"email": email})
+        return jsonify({"message": "Profile updated", "user": updated_user["email"]})
 
 
 @app.route("/logout", methods=["POST"])
@@ -221,7 +274,7 @@ def google_login_callback():
 
     token = google.authorize_access_token()
     email = token["userinfo"]["email"]
-    photo = token["userinfo"].get("picture", "/default-avatar.png")
+    photo = token["userinfo"].get("picture", "")
     name = token["userinfo"].get("name", "")
 
     # Проверяем, есть ли пользователь в базе
@@ -235,6 +288,7 @@ def google_login_callback():
             "name": name,
             "password": None,
             "is_verified": True,  # Email подтверждён
+            "google_user": True,
         }
         users_collection.insert_one(new_user)
 
@@ -245,6 +299,7 @@ def google_login_callback():
     session["email"] = user["email"]
     session["photo"] = user["photo"]
     session["name"] = user["name"]
+    session["google_user"] = user["google_user"]
     return redirect(f"http://localhost:3000/?login=success&email={user["email"]}")
 
 

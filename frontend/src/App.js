@@ -15,6 +15,7 @@ function App() {
     name: '',
     email: '',
     photo: '',
+    google_user: false,
     isDefault: true,
   }
   const [user, setUser] = useState(defaultUser)
@@ -28,6 +29,7 @@ function App() {
         name: response.data.user.name,
         email: response.data.user.email,
         photo: response.data.user.photo,
+        google_user: response.data.user.google_user,
         isDefault: false,
       }) // Устанавливаем пользователя
     } catch (err) {
@@ -55,7 +57,10 @@ function App() {
       <Header user={user} logout={handleLogout} />
       <Routes>
         <Route path="/" element={<Welcome user={user} />} />
-        <Route path="/profile" element={<Profile user={user} />} />
+        <Route
+          path="/profile"
+          element={<Profile user={user} fetchUser={fetchUser} />}
+        />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login fetchUser={fetchUser} />} />
         <Route path="/verify/:token" element={<VerifyEmail />} />
