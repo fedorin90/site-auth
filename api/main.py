@@ -218,9 +218,9 @@ def profile():
             {
                 "user": {
                     "email": session["email"],
-                    "name": session["name"],
-                    "photo": session["photo"],
-                    "google_user": session["google_user"],
+                    "name": user.get("name", ""),
+                    "photo": user.get("photo", ""),
+                    "google_user": user.get("google_user", False),
                 }
             }
         )
@@ -229,12 +229,23 @@ def profile():
         name = request.form.get("name", user.get("name", ""))
 
         # Обработка фото
+        # Проверяем, есть ли новое фото
         if "photo" in request.files:
             photo = request.files["photo"]
             filename = secure_filename(photo.filename)
             filepath = os.path.join(UPLOAD_FOLDER, filename)
+            # Удаляем старый аватар (если он не является Google-аватаром)
+            old_photo = user.get("photo")
+            if old_photo and not user.get("google_user"):
+                old_photo_path = os.path.join(
+                    app.config["UPLOAD_FOLDER"], os.path.basename(old_photo)
+                )
+                if os.path.exists(old_photo_path):
+                    os.remove(old_photo_path)
+            # Сохраняем новый аватар
             photo.save(filepath)
             photo_url = f"/uploads/{filename}"
+
         else:
             photo_url = user.get("photo", "")
 
@@ -247,8 +258,12 @@ def profile():
         session["name"] = name
         session["photo"] = photo_url
 
-        updated_user = users_collection.find_one({"email": email})
-        return jsonify({"message": "Profile updated", "user": updated_user["email"]})
+        return jsonify(
+            {
+                "message": "Profile updated",
+                "user": {"email": email, "name": name, "photo": photo_url},
+            }
+        )
 
 
 @app.route("/logout", methods=["POST"])
